@@ -2,9 +2,6 @@
 
 A lightweight desktop application for managing clipboard history and easily accessing previously copied text.
 
-![Screenshot](https://via.placeholder.com/800x500?text=Clipboard+Manager+Screenshot)  
-*Example interface showing clipboard history with search functionality*
-
 ## Features
 - 📋 Store up to 50 clipboard items automatically
 - 🔍 Search through clipboard history
