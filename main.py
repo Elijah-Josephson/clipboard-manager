@@ -1,15 +1,23 @@
 # main.py
 import json
-import os
 import tkinter as tk
 from tkinter import messagebox, ttk
 import ttkbootstrap as tb
-from ttkbootstrap.constants import *
 from pathlib import Path
 
 APP_NAME = "Iliya's Clipboard Manager"
 MAX_ITEMS = 50
 DATA_FILE = Path.home() / ".clipboard_manager.json"
+
+# Core Palette
+ABYSS_NAVY = "#0B1325"
+OCEANIC_NAVY = "#1A2942"
+PLASMA_GREEN = "#00E676"
+BIOLUMINESCENT_MINT = "#69FFC3"
+PURE_WHITE = "#FFFFFF"
+GLASS_PANEL = "#152039"
+GLASS_BORDER = "#3A4B67"
+MUTED_TEXT = "#9BA9BF"
 
 def load_data():
     if DATA_FILE.exists():
@@ -33,63 +41,205 @@ class ClipboardManager:
     def __init__(self, root):
         self.root = root
         self.root.title(APP_NAME)
-        self.root.geometry("700x460")
+        self.root.geometry("900x600")
         self.root.minsize(520, 360)
+        self.root.configure(bg=ABYSS_NAVY)
 
         self.items = load_data()  # most recent first
         self.filtered = list(self.items)
 
-        # --- UI ---
         self.search_var = tk.StringVar()
         self.status_var = tk.StringVar(value="Ready")
-        #font customization
-        #c_font = font.Font(family , size=12="Roboto")
 
-        top = ttk.Frame(self.root)
-        top.pack(fill=X, padx=10, pady=(10, 6))
+        # Header and search controls.
+        header = tk.Frame(self.root, bg=ABYSS_NAVY)
+        header.pack(fill=tk.X, padx=24, pady=(22, 16))
 
-        ttk.Label(top, text="Search:").pack(side=LEFT, padx=(0,6))
-        search_entry = ttk.Entry(top, textvariable=self.search_var)
-        search_entry.pack(side=LEFT, fill=X, expand=True)
+        title_block = tk.Frame(header, bg=ABYSS_NAVY)
+        title_block.pack(side=tk.LEFT)
+        tk.Label(
+            title_block,
+            text="CLIPBOARD",
+            bg=ABYSS_NAVY,
+            fg=BIOLUMINESCENT_MINT,
+            font=("Segoe UI", 9, "bold"),
+        ).pack(anchor="w")
+        tk.Label(
+            title_block,
+            text="Your saved moments",
+            bg=ABYSS_NAVY,
+            fg=PURE_WHITE,
+            font=("Segoe UI", 20, "bold"),
+        ).pack(anchor="w", pady=(2, 0))
+
+        search_panel = tk.Frame(
+            header,
+            bg=GLASS_PANEL,
+            highlightthickness=1,
+            highlightbackground=GLASS_BORDER,
+        )
+        search_panel.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=(40, 0), ipady=2)
+        tk.Label(
+            search_panel,
+            text="⌕",
+            bg=GLASS_PANEL,
+            fg=BIOLUMINESCENT_MINT,
+            font=("Segoe UI", 16),
+        ).pack(side=tk.LEFT, padx=(12, 4))
+        search_entry = tk.Entry(
+            search_panel,
+            textvariable=self.search_var,
+            bg=GLASS_PANEL,
+            fg=PURE_WHITE,
+            insertbackground=BIOLUMINESCENT_MINT,
+            relief=tk.FLAT,
+            bd=0,
+            font=("Segoe UI", 10),
+        )
+        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 12), ipady=8)
         search_entry.bind("<KeyRelease>", lambda e: self.apply_filter())
 
-        btn_frame = ttk.Frame(top)
-        btn_frame.pack(side=LEFT, padx=8)
+        action_bar = tk.Frame(self.root, bg=ABYSS_NAVY)
+        action_bar.pack(fill=tk.X, padx=24, pady=(0, 16))
+        self.make_button(action_bar, "＋  Add Clipboard", self.add_clipboard, primary=True).pack(side=tk.LEFT)
+        self.make_button(action_bar, "Copy Selected", self.copy_selected).pack(side=tk.LEFT, padx=(8, 0))
+        self.make_button(action_bar, "Delete", self.delete_selected).pack(side=tk.LEFT, padx=(8, 0))
+        self.make_button(action_bar, "Clear All", self.clear_all).pack(side=tk.LEFT, padx=(8, 0))
 
-        ttk.Button(btn_frame, text="Add Clipboard", command=self.add_clipboard).pack(side=LEFT, padx=4)
-        ttk.Button(btn_frame, text="Copy Selected", command=self.copy_selected).pack(side=LEFT, padx=4)
-        ttk.Button(btn_frame, text="Delete", command=self.delete_selected).pack(side=LEFT, padx=4)
-        ttk.Button(btn_frame, text="Clear All", command=self.clear_all).pack(side=LEFT, padx=4)
+        # Main glass workspace.
+        mid = tk.Frame(self.root, bg=ABYSS_NAVY)
+        mid.pack(fill=tk.BOTH, expand=True, padx=24, pady=(0, 14))
 
-        # List area
-        mid = ttk.Frame(self.root)
-        mid.pack(fill=BOTH, expand=True, padx=10, pady=(0,10))
+        list_card = tk.Frame(
+            mid,
+            bg=GLASS_PANEL,
+            highlightthickness=1,
+            highlightbackground=GLASS_BORDER,
+        )
+        list_card.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        list_heading = tk.Frame(list_card, bg=GLASS_PANEL)
+        list_heading.pack(fill=tk.X, padx=16, pady=(14, 10))
+        tk.Label(
+            list_heading,
+            text="List",
+            bg=GLASS_PANEL,
+            fg=PURE_WHITE,
+            font=("Segoe UI", 10, "bold"),
+        ).pack(side=tk.LEFT)
+        self.count_label = tk.Label(
+            list_heading,
+            text="",
+            bg=GLASS_PANEL,
+            fg=MUTED_TEXT,
+            font=("Segoe UI", 9),
+        )
+        self.count_label.pack(side=tk.RIGHT)
 
-        self.listbox = tk.Listbox(mid, activestyle="none", selectmode=tk.SINGLE)
-        self.listbox.pack(side=LEFT, fill=BOTH, expand=True)
+        list_body = tk.Frame(list_card, bg=GLASS_PANEL)
+        list_body.pack(fill=tk.BOTH, expand=True, padx=(16, 10), pady=(0, 16))
+        self.listbox = tk.Listbox(
+            list_body,
+            activestyle="none",
+            selectmode=tk.SINGLE,
+            bg=OCEANIC_NAVY,
+            fg=PURE_WHITE,
+            selectbackground=BIOLUMINESCENT_MINT,
+            selectforeground=ABYSS_NAVY,
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=0,
+            font=("Segoe UI", 10),
+        )
+        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.listbox.bind("<Double-Button-1>", lambda e: self.copy_selected())
 
-        scrollbar = ttk.Scrollbar(mid, orient=tk.VERTICAL, command=self.listbox.yview)
-        scrollbar.pack(side=LEFT, fill=Y)
+        scrollbar = tk.Scrollbar(
+            list_body,
+            orient=tk.VERTICAL,
+            command=self.listbox.yview,
+            bg=GLASS_PANEL,
+            troughcolor=GLASS_PANEL,
+            activebackground=BIOLUMINESCENT_MINT,
+            relief=tk.FLAT,
+            bd=0,
+            width=8,
+        )
+        scrollbar.pack(side=tk.LEFT, fill=tk.Y, padx=(8, 0))
         self.listbox.config(yscrollcommand=scrollbar.set)
 
-        # Right panel: preview
-        right = ttk.Frame(mid, width=260)
-        right.pack(side=RIGHT, fill=Y, padx=(10,0))
+        # Right panel: preview.
+        right = tk.Frame(
+            mid,
+            width=300,
+            bg=GLASS_PANEL,
+            highlightthickness=1,
+            highlightbackground=GLASS_BORDER,
+        )
+        right.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(14, 0))
+        right.pack_propagate(False)
+        tk.Label(
+            right,
+            text="Preview",
+            bg=GLASS_PANEL,
+            fg=PURE_WHITE,
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor="nw", padx=16, pady=(14, 10))
+        self.preview = tk.Text(
+            right,
+            wrap="word",
+            state="disabled",
+            bg=OCEANIC_NAVY,
+            fg=PURE_WHITE,
+            insertbackground=BIOLUMINESCENT_MINT,
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=0,
+            font=("Segoe UI", 10),
+            padx=14,
+            pady=12,
+        )
+        self.preview.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 16))
 
-        ttk.Label(right, text="Preview", font=("Segoe UI", 10, "bold")).pack(anchor="nw")
-        self.preview = tk.Text(right, wrap="word", height=12, state="disabled")
-        self.preview.pack(fill=BOTH, expand=True, pady=(6,4))
-
-        # status
-        bottom = ttk.Frame(self.root)
-        bottom.pack(fill=X, padx=10, pady=(0,10))
-        ttk.Label(bottom, textvariable=self.status_var).pack(side=LEFT)
+        bottom = tk.Frame(self.root, bg=ABYSS_NAVY)
+        bottom.pack(fill=tk.X, padx=24, pady=(0, 18))
+        tk.Label(
+            bottom,
+            textvariable=self.status_var,
+            bg=ABYSS_NAVY,
+            fg=MUTED_TEXT,
+            font=("Segoe UI", 9),
+        ).pack(side=tk.LEFT)
 
         # Bind selection change
         self.listbox.bind("<<ListboxSelect>>", lambda e: self.on_select())
 
         self.refresh_list()
+
+    def make_button(self, parent, text, command, primary=False):
+        background = PLASMA_GREEN if primary else GLASS_PANEL
+        foreground = ABYSS_NAVY if primary else BIOLUMINESCENT_MINT
+        hover_background = BIOLUMINESCENT_MINT if primary else OCEANIC_NAVY
+        button = tk.Button(
+            parent,
+            text=text,
+            command=command,
+            bg=background,
+            fg=foreground,
+            activebackground=hover_background,
+            activeforeground=ABYSS_NAVY,
+            relief=tk.FLAT,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground=PLASMA_GREEN if primary else GLASS_BORDER,
+            highlightcolor=BIOLUMINESCENT_MINT,
+            cursor="hand2",
+            font=("Segoe UI", 9, "bold"),
+            padx=14,
+            pady=8,
+        )
+        button.bind("<Enter>", lambda event: button.configure(bg=hover_background))
+        button.bind("<Leave>", lambda event: button.configure(bg=background))
+        return button
 
     # --- core actions ---
     def add_clipboard(self):
@@ -186,6 +336,7 @@ class ClipboardManager:
             if len(line) > 80:
                 line = line[:77] + "..."
             self.listbox.insert(tk.END, line)
+        self.count_label.configure(text=f"{len(self.filtered)} / {MAX_ITEMS}")
         # keep selection if possible
         self.on_select()
 
@@ -193,9 +344,9 @@ class ClipboardManager:
         self.status_var.set(text)
 
 def main():
-    root = tb.Window(themename="superhero")  # pick a clean theme
+    root = tb.Window(themename="superhero")
     app = ClipboardManager(root)
-    root.resizable(False, False)
+    root.resizable(True, True)
     root.mainloop()
 
 if __name__ == "__main__":

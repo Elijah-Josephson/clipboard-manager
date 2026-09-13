@@ -1,0 +1,23 @@
+[project]
+name = "clipboard-manager"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Elijah"}
+]
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "ttkbootstrap (>=2.2.3,<3.0.0)"
+]
+
+[dependency-groups]
+dev = [
+    "0 (>=0.0.0,<0.0.1)",
+    "ttkbootstrap (>=2.2.2,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
